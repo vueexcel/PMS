@@ -56,7 +56,106 @@
           </template>
         </Modal>
 
-        <div class="card-wrapper" v-for="(poll, index) in polls" :key="index">
+        <div class="card-wrapper" v-for="(poll, index) in unSubmittedPolls" :key="index">
+          <div class="poll">
+            <PollCard>
+              <template v-slot:title="">
+                <div class="poll-title">{{ poll.poll }}</div>
+              </template>
+
+              <template v-slot:options="">
+                <div class="poll-options">
+                  <div
+                    class="option-wrapper"
+                    v-for="(option, optionIndex) in poll.options"
+                    :key="optionIndex"
+                  >
+                    <div class="option">
+                      <div class="option-title">
+                        <input
+                          type="radio"
+                          :disabled="disabledOption(poll.voters)"
+                          name="option"
+                          @change="handleSubmitPoll(poll.pid, option.oid)"
+                        />
+                        {{ option.option }}
+                      </div>
+                      <div></div>
+                      <div>
+                        <span class="vote">vote:</span> {{ option.vote }}
+                      </div>
+                    </div>
+                    <div
+                      v-if="$store.state.auth.user.role === 'admin'"
+                      class="option-actions"
+                    >
+                      <Button
+                        :label="'Edit'"
+                        class="small-button"
+                        @click="openDialogEditPollOption(poll.pid, option)"
+                      />
+                      <Button
+                        v-if="poll.options.length > 2"
+                        :label="'delete'"
+                        class="small-button danger ml-4"
+                        @click="
+                          openDialogDeletePollOption(poll.pid, option.oid)
+                        "
+                      />
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <template
+                v-if="$store.state.auth.user.role === 'admin'"
+                v-slot:footer=""
+              >
+                <hr />
+                <div class="poll-actions mt-4">
+                  <Button
+                    :label="'Add option'"
+                    class="small-button"
+                    @click="openDialogAddPollOption(poll.pid)"
+                  />
+
+                  <Button
+                    :label="'Edit'"
+                    class="small-button ml-4"
+                    @click="openDialogEditPoll(poll)"
+                  />
+                  <Button
+                    :label="'delete'"
+                    class="small-button danger ml-4"
+                    @click="openDialogDeletePoll(poll.pid)"
+                  />
+                </div>
+              </template>
+            </PollCard>
+          </div>
+        </div>
+
+         <div
+          v-if="unSubmittedPolls && !unSubmittedPolls.length"
+          class="page-heading mb-4 mt-4"
+        >
+          No Poll is left ....
+        </div>
+
+
+        <hr />
+
+        <div
+          v-if="submittedPolls && submittedPolls.length"
+          class="page-heading mb-4 mt-4"
+        >
+          Submitted polls
+        </div>
+
+        <div
+          class="card-wrapper"
+          v-for="(poll, index) in submittedPolls"
+          :key="index"
+        >
           <div class="poll">
             <PollCard>
               <template v-slot:title="">
@@ -157,10 +256,19 @@ export default {
   setup() {
     const store = useStore();
     store.dispatch("poll/fetchPolls");
-    const polls = computed(() => {
-      return store.state.poll.polls;
-    });
     console.log(store.state.poll.polls, "3333333");
+
+    const unSubmittedPolls = computed(() => {
+      return store.state.poll.polls.filter(
+        (el) => !el.voters.includes(store.state.auth.user.id)
+      );
+    });
+
+    const submittedPolls = computed(() => {
+      return store.state.poll.polls.filter(
+        (el) => el.voters.includes(store.state.auth.user.id)
+      );
+    });
 
     let selectedPollId = "";
     let selectedOptionId = "";
@@ -288,13 +396,11 @@ export default {
       }
 
       await store.dispatch("poll/fetchPolls");
-      // polls.value = store.state.poll.polls;
       closeDialog();
       store.commit("UPDATE_TOAST", response);
     };
 
     return {
-      polls,
       dialog,
       textField,
       updateTextField,
@@ -309,6 +415,8 @@ export default {
       handleDialogOK,
       disabledOption,
       handleSubmitPoll,
+      submittedPolls,
+      unSubmittedPolls
     };
   },
 };
