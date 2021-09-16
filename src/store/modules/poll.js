@@ -173,7 +173,7 @@ const actions = {
 
       return {
         success: true,
-        msg: 'Option added successfully'
+        msg: payload.user ? 'Suggestion added with a vote' : 'Option added successfully'
       }
     } catch (e) {
       return {
