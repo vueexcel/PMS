@@ -116,7 +116,7 @@
                           type="radio"
                           :disabled="disabledOption(poll.voters)"
                           name="option"
-                          @change="handleOthers(poll.pid)"
+                          @click="handleOthers(poll.pid)"
                         />
                         Others
                   </div>
