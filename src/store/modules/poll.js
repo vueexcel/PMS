@@ -148,7 +148,7 @@ const actions = {
 
   },
 
-  async addOption({ }, payload) {
+  async addOption({dispatch}, payload) {
     try {
       const addedoption = await firebase.firestore().collection("polls")
       .doc(payload.pid)
@@ -157,6 +157,13 @@ const actions = {
         option: payload.title,
         vote: 0
       })
+
+      if(payload.user) {
+        dispatch('submitPoll',{
+          pid: payload.pid,
+          oid: addedoption.id,
+        });
+      }
 
       await firebase.firestore().collection("polls")
       .doc(payload.pid)

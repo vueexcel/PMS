@@ -16,14 +16,14 @@
               v-if="
                 dialogType === 'edit poll' ||
                 dialogType === 'edit option' ||
-                dialogType === 'add option'
+                dialogType === 'add option' || dialogType === 'add suggestion'
               "
             >
               <TextField
                 :data="textField"
                 :placeholder="
                   dialogType === 'edit poll'
-                    ? 'Edit poll'
+                    ? 'Edit poll' : dialogType === 'add suggestion' ? 'Add Suggestion'
                     : dialogType === 'add option'
                     ? 'Add Option'
                     : 'Edit option'
@@ -44,7 +44,7 @@
               <Button
                 :label="
                   dialogType === 'edit option' || dialogType === 'edit poll'
-                    ? 'Edit'
+                    ? 'Edit' : dialogType === 'add suggestion' ? 'Add'
                     : dialogType === 'add option'
                     ? 'Add'
                     : 'Delete'
@@ -56,7 +56,11 @@
           </template>
         </Modal>
 
-        <div class="card-wrapper" v-for="(poll, index) in unSubmittedPolls" :key="index">
+        <div
+          class="card-wrapper"
+          v-for="(poll, index) in unSubmittedPolls"
+          :key="index"
+        >
           <div class="poll">
             <PollCard>
               <template v-slot:title="">
@@ -104,6 +108,20 @@
                       />
                     </div>
                   </div>
+            
+                  <div class="option-wrapper">
+                    <div class="option">
+                      <div class="option-title">
+                    <input
+                          type="radio"
+                          :disabled="disabledOption(poll.voters)"
+                          name="option"
+                          @change="handleOthers(poll.pid)"
+                        />
+                        Others
+                  </div>
+                    </div>
+                  </div>
                 </div>
               </template>
               <template
@@ -134,13 +152,12 @@
           </div>
         </div>
 
-         <div
+        <div
           v-if="unSubmittedPolls && !unSubmittedPolls.length"
           class="page-heading mb-4 mt-4"
         >
           No Poll is left ....
         </div>
-
 
         <hr />
 
@@ -265,8 +282,8 @@ export default {
     });
 
     const submittedPolls = computed(() => {
-      return store.state.poll.polls.filter(
-        (el) => el.voters.includes(store.state.auth.user.id)
+      return store.state.poll.polls.filter((el) =>
+        el.voters.includes(store.state.auth.user.id)
       );
     });
 
@@ -346,6 +363,12 @@ export default {
       store.commit("UPDATE_TOAST", response);
     };
 
+    const handleOthers = async (pid) => {
+      dialogType.value = "add suggestion";
+      selectedPollId = pid;
+      openDialog()
+    };
+
     const handleDialogOK = async () => {
       let response;
       if (dialogType.value === "delete option") {
@@ -393,6 +416,19 @@ export default {
           pid: selectedPollId,
           title: textField.value,
         });
+      } else if (dialogType.value === "add suggestion") {
+         if (!textField.value) {
+          store.commit("UPDATE_TOAST", {
+            success: false,
+            msg: "Enter Suggestion",
+          });
+          return false;
+        }
+        response = await store.dispatch("poll/addOption", {
+          pid: selectedPollId,
+          title: textField.value,
+          user: "Non-Admin"
+        });
       }
 
       await store.dispatch("poll/fetchPolls");
@@ -416,7 +452,8 @@ export default {
       disabledOption,
       handleSubmitPoll,
       submittedPolls,
-      unSubmittedPolls
+      unSubmittedPolls,
+      handleOthers
     };
   },
 };
